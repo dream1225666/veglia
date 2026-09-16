@@ -18,23 +18,26 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          cache-disabled: true
+      - name: Install Android SDK components
+        run: |
+          # 安装脚本所需的 Android 34 平台和构建工具
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -f "$SDKMANAGER" ]; then
+            SDKMANAGER="$ANDROID_HOME/cmdline-tools/16.0/bin/sdkmanager"
+          fi
+          yes | $SDKMANAGER --licenses
+          yes | $SDKMANAGER "platforms;android-34" "build-tools;34.0.0"
 
-      - name: Build Debug APK
+      - name: Make build script executable
+        run: chmod +x android/build.sh
+
+      - name: Build APK using custom script
         run: |
           cd android
-          # 如果缺少 gradlew 文件，就使用 gradle 命令自动生成
-          if [ ! -f gradlew ]; then
-            gradle wrapper
-          fi
-          chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          ./build.sh
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: veglia-debug-apk
-          path: android/app/build/outputs/apk/debug/*.apk
+          name: veglia-apk
+          path: android/Veglia.apk
